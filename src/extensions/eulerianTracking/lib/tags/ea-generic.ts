@@ -68,7 +68,7 @@ export class EaGenericBuilder {
     return this;
   }
 
-  /** Referrer. Not part of the app SDKs; sent as a flat key (whether the collector reads it is still to be confirmed with Eulerian). */
+  /** Referrer (`rf`), a flat key per the Eulerian Measurement Protocol (not sent by the app SDKs). */
   public setReferrer(referrer: string | undefined): this {
     if (referrer) this.pages.rf = referrer;
     return this;

@@ -35,7 +35,7 @@ POST https://<collectorHost>/collectorjson/<siteName>/<unix seconds>
 
 It sends exactly one hit per request (`[hit]`) with `fetch(..., { keepalive: true, mode: 'cors', credentials: 'omit' })`. It has no queue and no retry (`lib/transport.ts`).
 
-Browser-only concern: a cross-origin `application/json` POST triggers a **CORS preflight** (`OPTIONS`). The native SDKs never hit this. The collector answers the preflight with `Access-Control-Allow-Origin` and `Access-Control-Allow-Headers: Content-Type` (confirmed 2026-11-06).
+Browser-only concern: a cross-origin `application/json` POST triggers a **CORS preflight** (`OPTIONS`). The native SDKs never hit this. The collector answers the preflight with `Access-Control-Allow-Origin` and `Access-Control-Allow-Headers: Content-Type`.
 
 ## 2. Hit object
 
@@ -50,7 +50,7 @@ RN builds three dictionaries and merges them flat, in this order (later keys win
 | `pagegroup` | pages | site (web) title | `setPageGroup()` |
 | `uid` | pages | Entra object ID, lowercase GUID | `setUID()`; only with `setUid: true`. |
 | `email` | pages | SHA-256 hex of the trimmed, lowercased email | `setEmail()`; the SDKs send whatever the app passes, and their docs ask for SHA-256 of the lowercased email. Only with `setEmailHash: true`. |
-| `rf` | pages | first view: `document.referrer`; after that: previous in-app URL | **Not sent by any app SDK**; whether `collectorjson` reads it is still open (§7). |
+| `rf` | pages | first view: `document.referrer`; after that: previous in-app URL | Not sent by the app SDKs; a flat key per the Eulerian Measurement Protocol. |
 | `actions` | pages | `[{ name, label, mode?, ref?, params? }]` | `putAction()` |
 | `ereplay-notag` | properties | `1` (number) | `setStandalone()` |
 | `pmcat` / `enoepm` | properties | see section 3 | Passed as free keys (`set(key, value)`). |
@@ -150,11 +150,6 @@ Download:
 
 ## 7. Questions for Eulerian (summary)
 
-Resolved on 2026-11-06: `enoepm=0` is the non-consented signal; the collector answers CORS preflights; the site is passed explicitly as `/collectorjson/<siteName>/`.
-
-Still open:
-
-1. Is `rf` read as a flat key in the JSON format?
-2. Search: flat (`isearchengine` + `isearchresults` + `isearchparams`, as in RN) or nested (`isearchengine: { name, results, params }`, as in iOS/Android/Flutter)?
-3. Does the leading `/` the SDKs add to `path` matter for reporting (`/sharepoint|sites/hr|Home`)?
-4. Should we send an integration/version marker (for example `ea-sharepoint-sdk-version`)?
+1. Search: flat (`isearchengine` + `isearchresults` + `isearchparams`, as in RN) or nested (`isearchengine: { name, results, params }`, as in iOS/Android/Flutter)?
+2. Does the leading `/` the SDKs add to `path` matter for reporting (`/sharepoint|sites/hr|Home`)?
+3. Should we send an integration/version marker (for example `ea-sharepoint-sdk-version`)?

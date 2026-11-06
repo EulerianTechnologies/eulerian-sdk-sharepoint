@@ -135,6 +135,14 @@ Every hit is **one** `POST` to `https://<collectorHost>/collectorjson/<siteName>
 
 The exact payloads are in [docs/eulerian-protocol.md](docs/eulerian-protocol.md).
 
+### About the referrer (`rf`)
+
+- **In-app navigation** (most clicks inside SharePoint, which is a single-page app): the browser does not update `document.referrer`, so the extension sends the **previous SharePoint page URL** it tracked itself. This is always available.
+- **First page of a visit, or a full page reload** (opening a link, cross-site navigation that reloads the page): `rf` is the browser's `document.referrer`, which depends on where the visitor came from:
+  - another SharePoint page (same `<tenant>.sharepoint.com` origin): the full URL;
+  - another website or web app (Outlook on the web, Teams web, an intranet portal): usually **only the origin** (e.g. `https://outlook.office.com/`), because browsers default to the `strict-origin-when-cross-origin` referrer policy, or nothing if that site sends `no-referrer`;
+  - a typed URL, a bookmark, or a link opened from a desktop app (Outlook, Teams desktop, Office): **empty**, so `rf` is not sent.
+
 ### Known gaps (downloads and search)
 
 Download detection relies on a link (`<a href>`) that names the file. It works for direct file links, Office for the web links (`Doc.aspx?…&file=Report.docx`), `download.aspx?SourceUrl=…` and library preview links (`AllItems.aspx?id=…/file.pdf`). It **does not** see:
@@ -336,11 +344,8 @@ These were settled at the start of the project. Don't revisit them without discu
 
 Also listed in [docs/eulerian-protocol.md](docs/eulerian-protocol.md) §7:
 
-1. Whether **`rf`** is read as a flat key in the JSON format.
-2. **Search payload shape**: flat (RN SDK, implemented) vs nested (iOS/Android/Flutter SDKs).
-3. **SharePoint CSP `connect-src`**: unknown per tenant. Both cases are documented in [SharePoint CSP and the collector](#sharepoint-csp-and-the-collector).
-
-Resolved: `enoepm=0` is the non-consented signal; the collector answers CORS preflights; the Eulerian site is given explicitly by the mandatory `siteName` setting (`/collectorjson/<siteName>/<epoch>`).
+1. **Search payload shape**: flat (RN SDK, implemented) vs nested (iOS/Android/Flutter SDKs).
+2. **SharePoint CSP `connect-src`**: unknown per tenant. Both cases are documented in [SharePoint CSP and the collector](#sharepoint-csp-and-the-collector).
 
 ## License
 
