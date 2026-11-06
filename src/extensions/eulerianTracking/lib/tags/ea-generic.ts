@@ -1,3 +1,4 @@
+import { PLATFORM, SDK_VERSION } from '../version';
 import { Action } from './action';
 
 /** One hit object, as sent inside the JSON array body. */
@@ -17,7 +18,7 @@ export interface IHitInternals {
  *
  * Like the SDK, it keeps three dictionaries and build() merges them flat, in
  * this order (later keys win):
- *   internals  : euidl, url, ereplay-time
+ *   internals  : euidl, url, ereplay-time, ereplay-platform, ea-sharepoint-sdk
  *   pages      : path, pagegroup, uid, email, rf, actions
  *   properties : anything passed to set(), ereplay-notag, search fields
  *
@@ -33,6 +34,9 @@ export class EaGenericBuilder {
     this.internals.euidl = internals.euidl;
     this.internals.url = internals.url;
     this.internals['ereplay-time'] = internals.time;
+    // Traffic identification, on every hit (like ea-flutter-sdk-version in the Flutter SDK).
+    this.internals['ereplay-platform'] = PLATFORM;
+    this.internals['ea-sharepoint-sdk'] = SDK_VERSION;
     if (path !== undefined && path !== null && path !== '') {
       // All four SDKs force a leading "/" on path; we do the same.
       this.pages.path = path.charAt(0) === '/' ? path : '/' + path;

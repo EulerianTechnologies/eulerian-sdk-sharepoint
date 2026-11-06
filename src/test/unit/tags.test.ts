@@ -2,6 +2,7 @@ import { ActionBuilder } from '../../extensions/eulerianTracking/lib/tags/action
 import { EaGenericBuilder, IHitInternals } from '../../extensions/eulerianTracking/lib/tags/ea-generic';
 import { EASearchBuilder } from '../../extensions/eulerianTracking/lib/tags/ea-search';
 import { ParamsBuilder } from '../../extensions/eulerianTracking/lib/tags/params';
+import { SDK_VERSION } from '../../extensions/eulerianTracking/lib/version';
 
 /*
  * Expected objects below are what eanalytics-react-native's builders produce
@@ -22,6 +23,8 @@ describe('EaGenericBuilder', () => {
       euidl: internals.euidl,
       url: internals.url,
       'ereplay-time': 1767225600,
+      'ereplay-platform': 'sharepoint',
+      'ea-sharepoint-sdk': SDK_VERSION,
       path: '/sharepoint|sites/hr|Home',
       pagegroup: 'Human Resources'
     });
@@ -40,7 +43,7 @@ describe('EaGenericBuilder', () => {
 
   it('ignores empty values like the SDK setters', () => {
     const hit = new EaGenericBuilder(internals, 'p').setUid('').setEmailHash(undefined).setPageGroup('').setReferrer('').build();
-    expect(Object.keys(hit).sort()).toEqual(['ereplay-time', 'euidl', 'path', 'url']);
+    expect(Object.keys(hit).sort()).toEqual(['ea-sharepoint-sdk', 'ereplay-platform', 'ereplay-time', 'euidl', 'path', 'url']);
   });
 
   it('set(key, value) adds free fields (consent goes through here)', () => {
@@ -80,6 +83,15 @@ describe('EaGenericBuilder', () => {
   });
 });
 
+describe('traffic identification', () => {
+  it('every builder sets ereplay-platform=sharepoint and ea-sharepoint-sdk=<version>', () => {
+    for (const hit of [new EaGenericBuilder(internals).build(), new EASearchBuilder(internals, 'p').build()]) {
+      expect(hit['ereplay-platform']).toBe('sharepoint');
+      expect(hit['ea-sharepoint-sdk']).toMatch(/^\d+\.\d+\.\d+$/);
+    }
+  });
+});
+
 describe('EASearchBuilder', () => {
   it('nested isearchengine object, as in the iOS/Android/Flutter SDKs', () => {
     const hit = new EASearchBuilder(internals, 'sharepoint|root|search')
@@ -93,6 +105,8 @@ describe('EASearchBuilder', () => {
       euidl: internals.euidl,
       url: internals.url,
       'ereplay-time': 1767225600,
+      'ereplay-platform': 'sharepoint',
+      'ea-sharepoint-sdk': SDK_VERSION,
       path: '/sharepoint|root|search',
       uid: 'a1b2',
       email: 'abc',

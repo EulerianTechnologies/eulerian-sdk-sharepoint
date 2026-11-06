@@ -1,4 +1,5 @@
 import { ITrackingHandle, startTracking } from '../../extensions/eulerianTracking/lib/tracker';
+import { SDK_VERSION } from '../../extensions/eulerianTracking/lib/version';
 import { IFakeContext, MemoryStorage, TEST_EMAIL_SHA256, fakeContext, nodeCrypto, recordingFetch, silentLogger } from './helpers';
 
 const NOW: number = 1767225600000; // 2026-01-01T00:00:00Z
@@ -61,6 +62,8 @@ describe('startTracking', () => {
       euidl: expect.stringMatching(/^[0-9a-f-]{36}$/),
       url: 'https://contoso.example.com/sites/hr/SitePages/Home.aspx',
       'ereplay-time': 1767225600,
+      'ereplay-platform': 'sharepoint',
+      'ea-sharepoint-sdk': SDK_VERSION,
       path: '/sharepoint|sites/hr|Home',
       pagegroup: 'Human Resources',
       rf: 'https://www.example.org/',
@@ -108,6 +111,8 @@ describe('startTracking', () => {
       expect(hit).toHaveProperty('euidl');
       expect(hit).toHaveProperty('url');
       expect(hit).toHaveProperty('ereplay-time');
+      expect(hit['ereplay-platform']).toBe('sharepoint');
+      expect(hit['ea-sharepoint-sdk']).toBe(SDK_VERSION);
       if (expected.pmcat) expect(hit).not.toHaveProperty('enoepm');
       else expect(hit).not.toHaveProperty('pmcat');
     });

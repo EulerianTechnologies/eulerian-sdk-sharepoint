@@ -20,7 +20,6 @@ Out of scope for v1: classic pages, SharePoint Server (on-premises), consent ban
 - [SharePoint CSP and the collector](#sharepoint-csp-and-the-collector)
 - [Troubleshooting](#troubleshooting)
 - [Developer guide](#developer-guide)
-- [Open questions](#open-questions)
 
 ---
 
@@ -123,6 +122,7 @@ Every hit is **one** `POST` to `https://<collectorHost>/collectorjson/<siteName>
 - `euidl` (visitor ID),
 - `url` (full page URL),
 - `ereplay-time` (Unix seconds),
+- `ereplay-platform` = `sharepoint` and `ea-sharepoint-sdk` = the extension version (e.g. `0.1.0`), to identify SharePoint traffic,
 - the consent field,
 - `rf` (referrer) when available,
 - `uid` / `email` only if enabled and available.
@@ -271,6 +271,7 @@ src/extensions/eulerianTracking/
     navigation.ts   dedupe + in-app referrer
     downloads.ts    document link detection + delegated click listener
     transport.ts    JSON POST to collectorjson
+    version.ts      extension version + platform name sent on every hit
     tracker.ts      wiring; finalizeHit() applies identity + referrer + consent to every builder
 src/test/unit/      Jest unit tests (Heft only compiles src/, hence not a top-level test/ folder)
 harness/
@@ -314,7 +315,7 @@ npm start
 
 ### Releasing
 
-1. Bump `version` in `package.json` **and** `solution.version` + the feature `version` in `config/package-solution.json` (`X.Y.Z` ↔ `X.Y.Z.0`). Run `npm run version:check`.
+1. Bump `version` in `package.json`, `solution.version` + the feature `version` in `config/package-solution.json` (`X.Y.Z` ↔ `X.Y.Z.0`), and `SDK_VERSION` in `src/extensions/eulerianTracking/lib/version.ts` (sent in every hit as `ea-sharepoint-sdk`). Run `npm run version:check`.
 2. Commit, then tag `vX.Y.Z` and push the tag.
 3. `release.yml` checks the versions, runs all tests, builds the `.sppkg` in ship mode and attaches it to a GitHub Release.
 
@@ -339,10 +340,6 @@ These were settled at the start of the project. Don't revisit them without discu
 - Tracking must never throw into the SharePoint page. Every failure is caught and logged only with `debug: true`.
 
 ---
-
-## Open questions
-
-- **SharePoint CSP `connect-src`**: unknown per tenant. Both cases are documented in [SharePoint CSP and the collector](#sharepoint-csp-and-the-collector).
 
 ## License
 

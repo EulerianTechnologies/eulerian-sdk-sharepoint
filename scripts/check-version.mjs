@@ -1,5 +1,6 @@
 // Checks that package.json, config/package-solution.json (solution + every
-// feature) and, when given, the Git tag all carry the same version.
+// feature), src/.../lib/version.ts (sent in hits) and, when given, the Git tag
+// all carry the same version.
 //   node scripts/check-version.mjs            -> files agree with each other
 //   node scripts/check-version.mjs v0.1.0     -> ...and with the tag
 // In GitHub Actions the tag defaults to GITHUB_REF_NAME when it starts with "v".
@@ -15,6 +16,11 @@ if (solution.version !== expected) errors.push(`solution.version is ${solution.v
 for (const feature of solution.features || []) {
   if (feature.version !== expected) errors.push(`feature "${feature.title}" version is ${feature.version}, expected ${expected}`);
 }
+
+// The version sent in hits (ea-sharepoint-sdk) lives in lib/version.ts.
+const versionTs = readFileSync(new URL('../src/extensions/eulerianTracking/lib/version.ts', import.meta.url), 'utf8');
+const sdkVersion = (/SDK_VERSION: string = '([^']+)'/.exec(versionTs) || [])[1];
+if (sdkVersion !== pkg.version) errors.push(`lib/version.ts SDK_VERSION is ${sdkVersion}, expected ${pkg.version}`);
 
 const envTag = (process.env.GITHUB_REF_NAME || '').startsWith('v') ? process.env.GITHUB_REF_NAME : undefined;
 const tag = process.argv[2] || envTag;

@@ -90,6 +90,8 @@ sub validate_hit ($hit) {
   return 'missing euidl' unless defined $hit->{euidl} && !ref $hit->{euidl} && length $hit->{euidl};
   return 'missing or invalid url' unless defined $hit->{url} && $hit->{url} =~ m{^https?://};
   return 'missing or invalid ereplay-time' unless defined $hit->{'ereplay-time'} && $hit->{'ereplay-time'} =~ /^\d+$/;
+  return 'ereplay-platform must be "sharepoint"' unless ($hit->{'ereplay-platform'} // '') eq 'sharepoint';
+  return 'missing ea-sharepoint-sdk version' unless ($hit->{'ea-sharepoint-sdk'} // '') =~ /^\d+\.\d+\.\d+$/;
   my $consent = grep { exists $hit->{$_} } qw(pmcat enoepm);
   return 'exactly one of pmcat / enoepm is required' unless $consent == 1;
   return undef;

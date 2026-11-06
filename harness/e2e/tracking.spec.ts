@@ -1,5 +1,10 @@
 import { APIRequestContext, ConsoleMessage, Page, expect, test } from '@playwright/test';
 import { createHash } from 'crypto';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+// ea-sharepoint-sdk must carry the package version.
+const PKG_VERSION: string = JSON.parse(readFileSync(join(__dirname, '..', '..', 'package.json'), 'utf8')).version;
 
 const COLLECTOR: string = 'http://127.0.0.1:8402';
 const PAGE_ORIGIN: string = 'http://127.0.0.1:8401';
@@ -80,6 +85,8 @@ test('page view on load + one pushState navigation: mandatory fields, preflight,
   for (const hit of all) {
     expect(hit.euidl).toMatch(/^[0-9a-f-]{36}$/);
     expect(typeof hit['ereplay-time']).toBe('number');
+    expect(hit['ereplay-platform']).toBe('sharepoint');
+    expect(hit['ea-sharepoint-sdk']).toBe(PKG_VERSION);
     expect(hit.pmcat).toBe('-');
   }
   expect(first).toMatchObject({ url: PAGE_ORIGIN + HOME, path: '/sharepoint|sites/hr|Home', pagegroup: 'Site HR' });

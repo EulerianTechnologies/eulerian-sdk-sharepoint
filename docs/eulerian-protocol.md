@@ -46,6 +46,8 @@ RN builds three dictionaries and merges them flat, in this order (later keys win
 | `euidl` | internals | random UUID v4, `localStorage["eulerian-euidl"]` | iOS: random UUID persisted in NSUserDefaults under `eulerian-euidl`. Android / RN-Android: `ANDROID_ID`. |
 | `url` | internals | full `location.href` | RN/Android/iOS: `"http://" + bundleId`. **Flutter Web: `Uri.base.path` (path only).** We send the full URL, because the domain must match the domain declared on the Eulerian site. |
 | `ereplay-time` | internals | Unix seconds (number) | Same in all SDKs. |
+| `ereplay-platform` | internals | `"sharepoint"` | Identifies traffic coming from this extension. |
+| `ea-sharepoint-sdk` | internals | extension version, e.g. `"0.1.0"` | Like `ea-flutter-sdk-version` in the Flutter SDK. Source: `lib/version.ts`. |
 | `path` | pages | `"/" + pathPrefix\|<site segment>\|<page name>` | **All four SDKs prepend `/` when it's missing**, and our builder does the same. Example: `/sharepoint\|sites/hr\|Home`. |
 | `pagegroup` | pages | site (web) title | `setPageGroup()` |
 | `uid` | pages | Entra object ID, lowercase GUID | `setUID()`; only with `setUid: true`. |
@@ -56,7 +58,7 @@ RN builds three dictionaries and merges them flat, in this order (later keys win
 | `pmcat` / `enoepm` | properties | see section 3 | Passed as free keys (`set(key, value)`). |
 | `isearchengine` | properties | `{ name, results?, params }`, see section 4 | Nested form of iOS/Android/Flutter (RN sends flat keys). |
 
-Keys the app SDKs send that we deliberately leave out, because they have no meaning in a browser: `eos`, `ehw`, `ehw-identifier`, `ea-appname`, `ea-appversion`, `ea-appversionbuild`, the `ea-android-*` and `ea-ios-*` keys, and the SDK version keys. If Eulerian wants an integration marker, the natural choice is `ea-sharepoint-sdk-version`. It is not sent today.
+Keys the app SDKs send that we deliberately leave out, because they have no meaning in a browser: `eos`, `ehw`, `ehw-identifier`, `ea-appname`, `ea-appversion`, `ea-appversionbuild`, the `ea-android-*` and `ea-ios-*` keys, and the app SDK version keys (`ea-android-sdk-version`, `ea-flutter-sdk-version`, ...), replaced by our own `ea-sharepoint-sdk`.
 
 ## 3. Consent
 
@@ -107,6 +109,8 @@ Page view, `consentMode: "pmcat"`, `pmcat: "-"`, both identity flags on:
   "euidl": "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
   "url": "https://contoso.example.com/sites/hr/SitePages/News.aspx",
   "ereplay-time": 1767225600,
+  "ereplay-platform": "sharepoint",
+  "ea-sharepoint-sdk": "0.1.0",
   "path": "/sharepoint|sites/hr|News",
   "pagegroup": "Human Resources",
   "uid": "a1b2c3d4-e5f6-4711-8899-aabbccddeeff",
@@ -123,6 +127,8 @@ Search, `consentMode: "consented"`:
   "euidl": "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
   "url": "https://contoso.example.com/_layouts/15/search.aspx/siteall?q=annual%20leave",
   "ereplay-time": 1767225660,
+  "ereplay-platform": "sharepoint",
+  "ea-sharepoint-sdk": "0.1.0",
   "path": "/sharepoint|root|search",
   "pagegroup": "Contoso Intranet",
   "rf": "https://contoso.example.com/sites/hr/SitePages/News.aspx",
@@ -138,6 +144,8 @@ Download:
   "euidl": "3f2504e0-4f89-41d3-9a0c-0305e82c3301",
   "url": "https://contoso.example.com/sites/hr/SitePages/News.aspx",
   "ereplay-time": 1767225720,
+  "ereplay-platform": "sharepoint",
+  "ea-sharepoint-sdk": "0.1.0",
   "path": "/sharepoint|sites/hr|News",
   "pagegroup": "Human Resources",
   "rf": "https://contoso.example.com/sites/hr/SitePages/News.aspx",
@@ -146,7 +154,3 @@ Download:
   "pmcat": "-"
 }]
 ```
-
-## 7. Questions for Eulerian (summary)
-
-1. Should we send an integration/version marker (for example `ea-sharepoint-sdk-version`)?
