@@ -2,7 +2,7 @@
 <!--
   Tenant-wide registration: with skipFeatureDeployment=true, deploying the
   .sppkg to all sites creates an entry in the Tenant Wide Extensions list with
-  these Properties. collectorHost and consentMode are EMPTY on purpose: the
+  these Properties. collectorHost, siteName and consentMode are EMPTY on purpose: the
   extension stays inactive (one console warning) until the admin edits the
   entry. See README.md, "Configuration".
 -->
@@ -11,6 +11,6 @@
         Title="EulerianTracking"
         Location="ClientSideExtension.ApplicationCustomizer"
         ComponentId="6abb42ac-0a7b-4d82-820e-d3c02cef3409"
-        Properties="{&quot;collectorHost&quot;:&quot;&quot;,&quot;consentMode&quot;:&quot;&quot;,&quot;pmcat&quot;:&quot;-&quot;,&quot;setUid&quot;:false,&quot;setEmailHash&quot;:false,&quot;trackDownloads&quot;:true,&quot;trackSearch&quot;:true,&quot;pathPrefix&quot;:&quot;sharepoint&quot;,&quot;debug&quot;:false}">
+        Properties="{&quot;collectorHost&quot;:&quot;&quot;,&quot;siteName&quot;:&quot;&quot;,&quot;consentMode&quot;:&quot;&quot;,&quot;pmcat&quot;:&quot;-&quot;,&quot;setUid&quot;:false,&quot;setEmailHash&quot;:false,&quot;trackDownloads&quot;:true,&quot;trackSearch&quot;:true,&quot;pathPrefix&quot;:&quot;sharepoint&quot;,&quot;debug&quot;:false}">
     </ClientSideComponentInstance>
 </Elements>

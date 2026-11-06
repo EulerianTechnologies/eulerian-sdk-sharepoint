@@ -6,6 +6,7 @@ const PAGE_ORIGIN: string = 'http://127.0.0.1:8401';
 const HOME: string = '/sites/hr/SitePages/Home.aspx';
 
 interface IStoredHit {
+  site: string;
   epoch: string;
   content_type: string;
   origin: string;
@@ -72,6 +73,7 @@ test('page view on load + one pushState navigation: mandatory fields, preflight,
     expect(stored.content_type).toMatch(/^application\/json/);
     expect(stored.origin).toBe(PAGE_ORIGIN);
     expect(stored.epoch).toMatch(/^\d+$/);
+    expect(stored.site).toBe('my-site'); // POST /collectorjson/my-site/<epoch>
   }
 
   const [first, second] = all;
@@ -201,6 +203,21 @@ test('invalid config: one console warning and no request', async ({ page, reques
   expect(state.preflights).toBe(0);
   expect(watch.console.filter((l) => l.indexOf('[Eulerian] tracking disabled') !== -1).length).toBe(1);
   expect(watch.errors).toEqual([]);
+});
+
+test('siteName selects the endpoint: /collectorjson/<siteName>/<epoch>', async ({ page, request }) => {
+  await page.goto(withConfig(HOME, { siteName: 'other_site' }));
+  await waitForHits(request, 1);
+  const state: ICollectorState = await collector(request);
+  expect(state.hits.map((h) => h.site)).toEqual(['other_site']);
+});
+
+test('missing siteName: tracking disabled', async ({ page, request }) => {
+  const watch = watchPage(page);
+  await page.goto(withConfig(HOME, { siteName: '' }));
+  await new Promise((r) => setTimeout(r, 1000));
+  expect((await collector(request)).hits).toEqual([]);
+  expect(watch.console.some((l) => l.indexOf('"siteName" is missing or invalid') !== -1)).toBe(true);
 });
 
 test('collector without CORS headers: hits are blocked, page keeps working', async ({ page, request }) => {

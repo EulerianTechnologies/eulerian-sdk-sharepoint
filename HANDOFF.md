@@ -11,7 +11,7 @@ Build a single installable package that adds Eulerian Marketing Platform trackin
 - **Monolith.** One repository, one SPFx solution, one `.sppkg`. No separate npm packages and no "core + adapter" split into modules. Internal folders are fine for readability and testing, but everything ships in one bundle.
 - **Technology.** SharePoint Framework (SPFx) Application Customizer, written in TypeScript (SPFx requires it). No UI framework: no React, no Vue. The test harness backend is Perl (Mojolicious::Lite). The developer's usual stack is Perl backend and JS/Vue 2 frontend, so keep the TypeScript plain and readable.
 - **Target.** SharePoint Online modern pages. Classic pages and SharePoint Server on-premises are out of scope for v1.
-- **Transport: JSON POST to `collectorjson`, aligned with the official Eulerian SDKs. This is final.** The bundle builds the payload and POSTs it as a JSON body to `https://<collectorHost>/collectorjson/-/<unix-seconds>`, exactly like the iOS, Android, Flutter and React Native SDKs. No Eulerian JS loader, no `EA_push`, no form-encoded `/collector/` endpoint, no third-party script of any kind.
+- **Transport: JSON POST to `collectorjson`, aligned with the official Eulerian SDKs. This is final.** The bundle builds the payload and POSTs it as a JSON body to `https://<collectorHost>/collectorjson/-/<unix-seconds>`, exactly like the iOS, Android, Flutter and React Native SDKs. No Eulerian JS loader, no `EA_push`, no form-encoded `/collector/` endpoint, no third-party script of any kind. *(Update 2026-11-06: `-` is replaced by the mandatory `siteName` setting, `/collectorjson/<siteName>/<unix-seconds>`; see section 4.)*
 - **Payload format = the official SDKs' format.** Same keys, same nesting (section 3). When in doubt, do what `eanalytics-react-native` does.
 - **Configuration at install time, not build time.** All customer-specific values come from the extension's `ComponentProperties` JSON (set in the Tenant Wide Extensions list). The same `.sppkg` must work for any customer.
 - **CSP-safe.** SharePoint Online enforces Content Security Policy on modern pages since March 2026. No inline `<script>`, no `eval`, no string-injected script tags. Since we load no external script, no Trusted Script Sources change is needed on the customer side.
@@ -38,7 +38,7 @@ Build a single installable package that adds Eulerian Marketing Platform trackin
 
 ### Transport (as implemented in the RN SDK)
 
-- URL: `https://<collectorHost>/collectorjson/-/<Math.floor(Date.now() / 1000)>` (the trailing epoch seconds act as a cache buster).
+- URL: `https://<collectorHost>/collectorjson/-/<Math.floor(Date.now() / 1000)>` (the trailing epoch seconds act as a cache buster). *This extension uses `<siteName>` instead of `-` (section 4 update).*
 - `POST`, header `Content-Type: application/json`.
 - Body: a **JSON array** of hit objects. The SDKs batch stored hits up to 100,000 bytes per request; we send **one hit per request** (array of length 1), since we keep no offline queue in v1.
 - Each hit object is a **flat merge** of three dictionaries (`internals`, `pages`, `properties` in the RN SDK; later keys overwrite earlier ones). Nested values exist only where shown below.
@@ -72,11 +72,19 @@ Build a single installable package that adds Eulerian Marketing Platform trackin
 
 Resolved: transport (`collectorjson` JSON POST), `euidl` generation, `uid` (Entra object ID in clear), hashed email key (`email`), event-only hits (`ereplay-notag=1`).
 
+**Update 2026-11-06 (developer decisions):**
+- Q1 resolved: `enoepm=0` is the non-consented signal, no issue.
+- Q2 resolved: the collector answers the CORS preflight, no issue.
+- Q3 partly resolved: the Eulerian site is **a mandatory `siteName` setting**, sent in the endpoint path instead of `-`: `https://<collectorHost>/collectorjson/<siteName>/<unix-seconds>`. Whether `rf` is read in the JSON format is still open.
+- Q4 resolved: the repository already ships an MIT `LICENSE`.
+- New, open: whether SharePoint's CSP restricts `connect-src` is unknown and may vary per tenant. The README documents both cases (no restriction / restriction, with the steps for each).
+
 ## 5. Configuration (ComponentProperties)
 
 ```json
 {
   "collectorHost": "collector.example.com",
+  "siteName": "my-site",
   "consentMode": "pmcat",
   "pmcat": "-",
   "setUid": false,
@@ -89,7 +97,7 @@ Resolved: transport (`collectorjson` JSON POST), `euidl` generation, `uid` (Entr
 ```
 
 - `collectorHost`: required; no scheme, no slash, must not contain `.eulerian.com` (same validation as the SDKs' `init`). If missing or invalid, log one console warning and do nothing.
-- No `siteName`: the JSON endpoint does not take one (open question 3). Add it back only if Eulerian says it is needed.
+- `siteName`: **required** (added 2026-11-06, see section 4). Eulerian site name, used in the endpoint path `/collectorjson/<siteName>/<epoch>`. If missing or invalid, log one console warning and do nothing.
 - `consentMode`: `"pmcat"` | `"consented"` | `"nonconsented"` (section 6).
 - `pmcat`: used only when `consentMode` is `"pmcat"`; Eulerian IDs of refused categories separated by `-`, or `-` alone when everything is accepted.
 - `setUid` (default `false`): add `uid` = Entra object ID in clear (from `pageContext.aadInfo.userId`) to every hit.
@@ -184,7 +192,7 @@ eulerian-sharepoint/
 1. **Unit tests** (CI on every commit): builders produce the exact JSON hit objects (compare with what the RN SDK builders would produce for the same input); config validation; all three consent modes; `euidl` persistence; email hashing against a known test vector (`" Test@Example.com "` must hash the same as `"test@example.com"`; compute the expected value once with `printf '%s' test@example.com | sha256sum` and hard-code it); `uid` equals the Entra object ID in lowercase; no `uid` when the object ID is missing; no `email` when the email is empty; each flag works independently; dedupe and in-app referrer; download detection; transport URL format and body is a one-element JSON array.
 2. **Local harness** (CI): `harness/harness.pl` runs two origins on two ports so cross-origin behaviour is real:
    - the **page origin** serves the built bundle and `index.html` with a strict CSP header (`script-src 'self'`); `index.html` loads the bundle as an external file and simulates navigation with `history.pushState`;
-   - the **collector origin** answers `OPTIONS /collectorjson/-/*` with CORS headers, accepts `POST /collectorjson/-/:epoch` with a JSON array body, validates it, and stores hits; plus `GET /hits` and `POST /hits/reset`. Add a switch to disable the CORS headers so the failure mode is visible too.
+   - the **collector origin** answers `OPTIONS /collectorjson/:site/*` with CORS headers, accepts `POST /collectorjson/:site/:epoch` with a JSON array body, validates it, and stores hits; plus `GET /hits` and `POST /hits/reset`. Add a switch to disable the CORS headers so the failure mode is visible too.
    Playwright checks: one hit per navigation; `euidl`, `url`, `ereplay-time` and consent on every hit; same `euidl` across reloads; download hit arrives with `ereplay-notag=1`; no CSP errors in the console.
 3. **Real Eulerian** (manual, as early as possible): point the harness at the real collector; confirm the preflight is answered (open question 2) and hits appear in the Eulerian interface.
 4. **Real SharePoint** (manual, before release): a test site with a site collection app catalog in a customer tenant, a Microsoft 365 trial tenant, or a Developer Program sandbox if eligible. Application Customizers can't run in the workbench; debug them on a real page with the SPFx debug query parameters or debug toolbar.

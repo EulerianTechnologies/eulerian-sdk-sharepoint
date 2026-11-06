@@ -25,9 +25,17 @@ Body: [ <hit>, <hit>, ... ]               (JSON array)
 - The host is validated by the same regex everywhere (dot-separated labels of letters, digits and inner hyphens), and must not contain `.eulerian.com`.
 - The SDKs batch stored hits (offline queue, up to 100,000 bytes per request in RN). Success is HTTP 200: Flutter checks `statusCode == 200`, and RN checks `response.ok`, then `response.json()`.
 
-**This extension** sends exactly one hit per request (`[hit]`) with `fetch(..., { keepalive: true, mode: 'cors', credentials: 'omit' })`. It has no queue and no retry (`lib/transport.ts`).
+**This extension** differs on one point: it puts the **Eulerian site name** where the SDKs put `-`:
 
-Browser-only concern: a cross-origin `application/json` POST triggers a **CORS preflight** (`OPTIONS`). The native SDKs never hit this. The collector must answer the preflight with `Access-Control-Allow-Origin` (the SharePoint origin or `*`) and `Access-Control-Allow-Headers: Content-Type`. This is open question 2, still **unverified against a real collector**.
+```
+POST https://<collectorHost>/collectorjson/<siteName>/<unix seconds>
+```
+
+`siteName` is a mandatory setting (decision of 2026-11-06), so the target site never depends on server-side resolution. It is validated as `^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$` and URL-encoded.
+
+It sends exactly one hit per request (`[hit]`) with `fetch(..., { keepalive: true, mode: 'cors', credentials: 'omit' })`. It has no queue and no retry (`lib/transport.ts`).
+
+Browser-only concern: a cross-origin `application/json` POST triggers a **CORS preflight** (`OPTIONS`). The native SDKs never hit this. The collector answers the preflight with `Access-Control-Allow-Origin` and `Access-Control-Allow-Headers: Content-Type` (confirmed 2026-11-06).
 
 ## 2. Hit object
 
@@ -58,7 +66,7 @@ The generic server-side guide defines `pmcat` (IDs of refused categories, `-` se
 |---|---|
 | `pmcat` | `"pmcat": "<config>"` |
 | `consented` | `"enoepm": "1"` |
-| `nonconsented` | `"enoepm": "0"`: **semantics not documented, to be confirmed with Eulerian (open question 1)** |
+| `nonconsented` | `"enoepm": "0"`: no consent (confirmed 2026-11-06) |
 
 ## 4. Internal search — SDK divergence
 
@@ -89,6 +97,8 @@ Action JSON, as built by the RN `Action.Builder`:
 The download hit is standalone (`ereplay-notag: 1`). It carries the `url`, `path` and `pagegroup` of the page where the link was clicked, and `rf` = that page URL.
 
 ## 6. Full examples (as sent by this extension)
+
+Each body below is POSTed to `https://<collectorHost>/collectorjson/<siteName>/<unix seconds>`.
 
 Page view, `consentMode: "pmcat"`, `pmcat: "-"`, both identity flags on:
 
@@ -140,9 +150,11 @@ Download:
 
 ## 7. Questions for Eulerian (summary)
 
-1. What does `enoepm=0` do? Is it a valid "fully non-consented" signal?
-2. Does the `collectorjson` endpoint answer CORS preflights for a `*.sharepoint.com` origin? If not, can it be enabled per customer, or does it accept `Content-Type: text/plain` with the same JSON body?
-3. How is the Eulerian site resolved for `/collectorjson/-/` (collector host? `url` domain?), and is `rf` read as a flat key in the JSON format?
-4. Search: flat (`isearchengine` + `isearchresults` + `isearchparams`, as in RN) or nested (`isearchengine: { name, results, params }`, as in iOS/Android/Flutter)?
-5. Does the leading `/` the SDKs add to `path` matter for reporting (`/sharepoint|sites/hr|Home`)?
-6. Should we send an integration/version marker (for example `ea-sharepoint-sdk-version`)?
+Resolved on 2026-11-06: `enoepm=0` is the non-consented signal; the collector answers CORS preflights; the site is passed explicitly as `/collectorjson/<siteName>/`.
+
+Still open:
+
+1. Is `rf` read as a flat key in the JSON format?
+2. Search: flat (`isearchengine` + `isearchresults` + `isearchparams`, as in RN) or nested (`isearchengine: { name, results, params }`, as in iOS/Android/Flutter)?
+3. Does the leading `/` the SDKs add to `path` matter for reporting (`/sharepoint|sites/hr|Home`)?
+4. Should we send an integration/version marker (for example `ea-sharepoint-sdk-version`)?

@@ -12,6 +12,7 @@ import { FetchLike } from './lib/transport';
  */
 export interface IEulerianTrackingApplicationCustomizerProperties {
   collectorHost?: string;
+  siteName?: string;
   consentMode?: string;
   pmcat?: string;
   setUid?: boolean | string;

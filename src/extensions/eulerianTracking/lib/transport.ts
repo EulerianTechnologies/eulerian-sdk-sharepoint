@@ -4,7 +4,9 @@ import { Hit } from './tags/ea-generic';
 /**
  * JSON POST to collectorjson, as in eanalytics-react-native
  * src/utils/httpHelper.ts:
- *   POST https://<collectorHost>/collectorjson/-/<unix seconds>
+ *   POST https://<collectorHost>/collectorjson/<siteName>/<unix seconds>
+ * The SDKs put "-" where we put the Eulerian site name: here the site is
+ * always explicit (mandatory `siteName` setting).
  *   Content-Type: application/json
  *   body: [ <hit> ]      (one hit per request: no offline queue in v1)
  *
@@ -24,9 +26,9 @@ export function collectorBaseUrl(collectorHost: string): string {
   return 'https://' + collectorHost;
 }
 
-export function collectorUrl(baseUrl: string, nowMs: number): string {
+export function collectorUrl(baseUrl: string, siteName: string, nowMs: number): string {
   // Trailing epoch seconds act as a cache buster, exactly like the SDKs.
-  return baseUrl + '/collectorjson/-/' + Math.floor(nowMs / 1000);
+  return baseUrl + '/collectorjson/' + encodeURIComponent(siteName) + '/' + Math.floor(nowMs / 1000);
 }
 
 export function buildRequestInit(hit: Hit): RequestInit {
@@ -42,6 +44,7 @@ export function buildRequestInit(hit: Hit): RequestInit {
 
 export function createTransport(
   baseUrl: string,
+  siteName: string,
   fetchFn: FetchLike | undefined,
   now: () => number,
   logger: ILogger
@@ -53,7 +56,7 @@ export function createTransport(
           logger.debug('fetch() is not available, hit dropped', hit);
           return Promise.resolve();
         }
-        const url: string = collectorUrl(baseUrl, now());
+        const url: string = collectorUrl(baseUrl, siteName, now());
         logger.debug('POST ' + url, hit);
         return fetchFn(url, buildRequestInit(hit)).then(
           (response: { status: number }) => {

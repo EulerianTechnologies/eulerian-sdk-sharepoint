@@ -11,6 +11,8 @@ export type ConsentMode = 'pmcat' | 'consented' | 'nonconsented';
 
 export interface ITrackingConfig {
   collectorHost: string;
+  /** Eulerian site name; replaces the SDKs' "-" in /collectorjson/<siteName>/<epoch>. */
+  siteName: string;
   consentMode: ConsentMode;
   /** Only meaningful when consentMode === 'pmcat'. */
   pmcat: string;
@@ -36,6 +38,10 @@ const HOST_REGEX: RegExp =
 // Kept permissive on the ID charset (letters/digits) since IDs come from the
 // customer's Eulerian setup; only the separator structure is enforced.
 const PMCAT_REGEX: RegExp = /^(-|[A-Za-z0-9]+(-[A-Za-z0-9]+)*-?)$/;
+
+// Eulerian site name: letters, digits, "_", "-", "." (starting with a letter or
+// digit, so "-" — the SDKs' placeholder — is rejected). Max 64 characters.
+const SITE_NAME_REGEX: RegExp = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$/;
 
 const CONSENT_MODES: ConsentMode[] = ['pmcat', 'consented', 'nonconsented'];
 
@@ -86,6 +92,17 @@ export function readConfig(input: unknown): ConfigResult {
     };
   }
 
+  // siteName is required: it selects the Eulerian site in the endpoint path.
+  const siteName: unknown = typeof raw.siteName === 'string' ? raw.siteName.trim() : raw.siteName;
+  if (typeof siteName !== 'string' || !SITE_NAME_REGEX.test(siteName)) {
+    return {
+      ok: false,
+      error:
+        '"siteName" is missing or invalid. Expected your Eulerian site name, such as "my-site" ' +
+        '(letters, digits, "_", "-", "."; provided by Eulerian).'
+    };
+  }
+
   // consentMode is required: defaulting it would silently pick a legal basis
   // on the customer's behalf.
   const consentMode: unknown = raw.consentMode;
@@ -118,6 +135,7 @@ export function readConfig(input: unknown): ConfigResult {
     ok: true,
     config: {
       collectorHost: collectorHost.toLowerCase(),
+      siteName,
       consentMode: consentMode as ConsentMode,
       pmcat,
       setUid: readBool(raw, 'setUid', false),

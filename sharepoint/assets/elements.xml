@@ -8,6 +8,6 @@
         Title="EulerianTracking"
         Location="ClientSideExtension.ApplicationCustomizer"
         ClientSideComponentId="6abb42ac-0a7b-4d82-820e-d3c02cef3409"
-        ClientSideComponentProperties="{&quot;collectorHost&quot;:&quot;&quot;,&quot;consentMode&quot;:&quot;&quot;,&quot;pmcat&quot;:&quot;-&quot;,&quot;setUid&quot;:false,&quot;setEmailHash&quot;:false,&quot;trackDownloads&quot;:true,&quot;trackSearch&quot;:true,&quot;pathPrefix&quot;:&quot;sharepoint&quot;,&quot;debug&quot;:false}">
+        ClientSideComponentProperties="{&quot;collectorHost&quot;:&quot;&quot;,&quot;siteName&quot;:&quot;&quot;,&quot;consentMode&quot;:&quot;&quot;,&quot;pmcat&quot;:&quot;-&quot;,&quot;setUid&quot;:false,&quot;setEmailHash&quot;:false,&quot;trackDownloads&quot;:true,&quot;trackSearch&quot;:true,&quot;pathPrefix&quot;:&quot;sharepoint&quot;,&quot;debug&quot;:false}">
     </CustomAction>
 </Elements>

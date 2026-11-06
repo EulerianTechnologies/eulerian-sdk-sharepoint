@@ -8,15 +8,16 @@
 #     - serves the compiled tracking bundle under /build/
 #     - serves fake documents under /files/ and an Office-for-the-web stub
 #   collector origin http://127.0.0.1:$HARNESS_COLLECTOR_PORT  (default 8402)
-#     - OPTIONS /collectorjson/-/:epoch   CORS preflight
-#     - POST    /collectorjson/-/:epoch   validates + stores hits
+#     - OPTIONS /collectorjson/:site/:epoch   CORS preflight
+#     - POST    /collectorjson/:site/:epoch   validates + stores hits (+ site name)
 #     - GET     /hits                      { hits, rejected, preflights, cors }
 #     - POST    /hits/reset
 #     - POST    /control                   { "cors": 0|1 }  toggle CORS headers
 #
 # Real collector mode (manual test, HANDOFF section 11 step 3):
-#   HARNESS_REAL_COLLECTOR=collector.customer-host.tld perl harness/harness.pl
-# makes the page POST to https://<that host> instead of the fake collector.
+#   HARNESS_REAL_COLLECTOR=collector.customer-host.tld HARNESS_SITE_NAME=<site> perl harness/harness.pl
+# makes the page POST to https://<that host>/collectorjson/<site>/... instead of
+# the fake collector.
 #
 # Usage: perl harness/harness.pl   (or: npm run harness)
 use Mojolicious::Lite -signatures;
@@ -39,6 +40,7 @@ my %state = (hits => [], rejected => [], preflights => 0, cors => 1);
 # never put a real customer collector in this repo.
 my %default_config = (
   collectorHost  => $real_collector || 'collector.example.com',
+  siteName       => $ENV{HARNESS_SITE_NAME} || 'my-site',
   consentMode    => 'pmcat',
   pmcat          => '-',
   setUid         => false,
@@ -93,22 +95,24 @@ sub validate_hit ($hit) {
   return undef;
 }
 
-options '/collectorjson/-/:epoch' => (port => $collector_port) => sub ($c) {
+options '/collectorjson/:site/:epoch' => (port => $collector_port) => sub ($c) {
   $state{preflights}++;
   cors_headers($c);
   $c->rendered(204);
 };
 
-post '/collectorjson/-/:epoch' => (port => $collector_port) => sub ($c) {
+post '/collectorjson/:site/:epoch' => (port => $collector_port) => sub ($c) {
   cors_headers($c);
   my $meta = {
+    site         => $c->param('site'),
     epoch        => $c->param('epoch'),
     content_type => $c->req->headers->content_type // '',
     origin       => $c->req->headers->origin // '',
   };
   my $error;
   my $body = eval { decode_json($c->req->body) };
-  if    ($meta->{epoch} !~ /^\d+$/)                       { $error = 'epoch is not numeric' }
+  if    ($meta->{site} eq '-')                            { $error = 'site name missing ("-" placeholder)' }
+  elsif ($meta->{epoch} !~ /^\d+$/)                       { $error = 'epoch is not numeric' }
   elsif ($meta->{content_type} !~ m{^application/json}i) { $error = 'Content-Type is not application/json' }
   elsif (ref $body ne 'ARRAY' || !@$body)                 { $error = 'body is not a non-empty JSON array' }
   else {

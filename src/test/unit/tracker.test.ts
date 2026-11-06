@@ -2,7 +2,7 @@ import { ITrackingHandle, startTracking } from '../../extensions/eulerianTrackin
 import { IFakeContext, MemoryStorage, TEST_EMAIL_SHA256, fakeContext, nodeCrypto, recordingFetch, silentLogger } from './helpers';
 
 const NOW: number = 1767225600000; // 2026-01-01T00:00:00Z
-const BASE_CONFIG = { collectorHost: 'collector.example.com', consentMode: 'pmcat', pmcat: '-' };
+const BASE_CONFIG = { collectorHost: 'collector.example.com', siteName: 'my-site', consentMode: 'pmcat', pmcat: '-' };
 
 function start(
   config: Record<string, unknown>,
@@ -55,7 +55,7 @@ describe('startTracking', () => {
   it('initial page view: exact hit object', async () => {
     const { handle, rec } = start(BASE_CONFIG);
     await handle!.ready();
-    expect(rec.requests[0].url).toBe('https://collector.example.com/collectorjson/-/1767225600');
+    expect(rec.requests[0].url).toBe('https://collector.example.com/collectorjson/my-site/1767225600');
     const [hit] = hits(rec);
     expect(hit).toEqual({
       euidl: expect.stringMatching(/^[0-9a-f-]{36}$/),
@@ -96,7 +96,7 @@ describe('startTracking', () => {
     [{ consentMode: 'consented' }, { enoepm: '1' }],
     [{ consentMode: 'nonconsented' }, { enoepm: '0' }]
   ])('consent %p is on every hit', async (consent: Record<string, string>, expected: Record<string, string>) => {
-    const { handle, rec, ctx } = start({ collectorHost: 'collector.example.com', ...consent });
+    const { handle, rec, ctx } = start({ collectorHost: 'collector.example.com', siteName: 'my-site', ...consent });
     ctx.navigate('https://contoso.example.com/_layouts/15/search.aspx/siteall?q=x');
     document.body.innerHTML = '<a id="d" href="/Docs/a.pdf">a</a>';
     document.getElementById('d')!.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));

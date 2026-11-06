@@ -1,6 +1,6 @@
 import { ConfigResult, readConfig, isValidCollectorHost } from '../../extensions/eulerianTracking/lib/config';
 
-const base = { collectorHost: 'collector.example.com', consentMode: 'consented' };
+const base = { collectorHost: 'collector.example.com', siteName: 'my-site', consentMode: 'consented' };
 
 function expectError(input: unknown, fragment: string): void {
   const result: ConfigResult = readConfig(input);
@@ -15,6 +15,7 @@ describe('readConfig', () => {
       ok: true,
       config: {
         collectorHost: 'collector.example.com',
+        siteName: 'my-site',
         consentMode: 'consented',
         pmcat: '',
         setUid: false,
@@ -30,6 +31,7 @@ describe('readConfig', () => {
   it('reads the full documented example', () => {
     const result: ConfigResult = readConfig({
       collectorHost: 'collector.example.com',
+      siteName: ' intranet_fr.v2 ',
       consentMode: 'pmcat',
       pmcat: '-',
       setUid: true,
@@ -41,6 +43,7 @@ describe('readConfig', () => {
     });
     expect(result.ok && result.config).toEqual({
       collectorHost: 'collector.example.com',
+      siteName: 'intranet_fr.v2',
       consentMode: 'pmcat',
       pmcat: '-',
       setUid: true,
@@ -73,6 +76,10 @@ describe('readConfig', () => {
   it('trims and lowercases a valid host', () => {
     const result: ConfigResult = readConfig({ ...base, collectorHost: '  Collector.Example.COM ' });
     expect(result.ok && result.config.collectorHost).toBe('collector.example.com');
+  });
+
+  it.each([undefined, '', '-', '_site', 'my site', 'my/site', 'a'.repeat(65), 42])('rejects siteName %p', (siteName: unknown) => {
+    expectError({ ...base, siteName }, 'siteName');
   });
 
   it.each([undefined, '', 'CONSENTED', 'opt-in'])('rejects consentMode %p', (mode: unknown) => {

@@ -124,6 +124,7 @@ export function startTracking(
   const logger: ILogger = env.logger || createConsoleLogger(config.debug);
   const transport: ITransport = createTransport(
     env.collectorBaseUrlOverride || collectorBaseUrl(config.collectorHost),
+    config.siteName,
     env.fetch,
     env.now,
     logger

@@ -17,6 +17,7 @@ Out of scope for v1: classic pages, SharePoint Server (on-premises), consent ban
 - [Configuration](#configuration)
 - [What is tracked](#what-is-tracked)
 - [Data collected (information for your DPO)](#data-collected-information-for-your-dpo)
+- [SharePoint CSP and the collector](#sharepoint-csp-and-the-collector)
 - [Troubleshooting](#troubleshooting)
 - [Developer guide](#developer-guide)
 - [Open questions](#open-questions)
@@ -32,7 +33,12 @@ Ask your Eulerian contact to:
 1. **declare your SharePoint host** (`<tenant>.sharepoint.com`) on your Eulerian site. Hits whose `url` domain is not declared are rejected.
 2. **allow that host as a CORS origin on your collector.** Browsers send a CORS preflight before each hit, and without it they block the request. The collector must answer `OPTIONS` with `Access-Control-Allow-Origin` (your SharePoint origin or `*`) and `Access-Control-Allow-Headers: Content-Type`.
 
-You'll also need your **collector host name** (for example `collector.example.com`; your real one is provided by Eulerian).
+You'll also need two values provided by Eulerian:
+
+- your **collector host name** (for example `collector.example.com`),
+- your **Eulerian site name** (for example `my-site`). Hits are sent to `https://<collector host>/collectorjson/<site name>/…`, so the site name selects which Eulerian site receives them.
+
+Finally, check how your tenant's Content Security Policy treats requests to the collector: see [SharePoint CSP and the collector](#sharepoint-csp-and-the-collector).
 
 ### 2. Upload the package
 
@@ -40,7 +46,7 @@ You'll also need your **collector host name** (for example `collector.example.co
 2. In the **SharePoint admin center**, open **More features → Apps → App Catalog** (or go straight to your tenant App Catalog site), then **Apps for SharePoint**.
 3. Upload the `.sppkg`. In the dialog, check **"Make this solution available to all sites in the organization"** and click **Deploy**.
 
-This creates an entry named **EulerianTracking** in the **Tenant Wide Extensions** list of the App Catalog site. The entry ships with an **empty `collectorHost` and `consentMode` on purpose**: tracking stays inactive until you configure it.
+This creates an entry named **EulerianTracking** in the **Tenant Wide Extensions** list of the App Catalog site. The entry ships with an **empty `collectorHost`, `siteName` and `consentMode` on purpose**: tracking stays inactive until you configure it.
 
 ### 3. Configure
 
@@ -50,6 +56,7 @@ This creates an entry named **EulerianTracking** in the **Tenant Wide Extensions
    ```json
    {
      "collectorHost": "collector.example.com",
+     "siteName": "my-site",
      "consentMode": "pmcat",
      "pmcat": "-",
      "setUid": false,
@@ -65,8 +72,8 @@ This creates an entry named **EulerianTracking** in the **Tenant Wide Extensions
 
 ### 4. Verify
 
-1. With `"debug": true`, open any modern page, then the browser console (F12). You should see `[Eulerian] tracking started` and one `[Eulerian] POST https://<collectorHost>/collectorjson/-/...` line per page view, followed by `collector answered HTTP 200`.
-2. In the **Network** tab, the request to `collectorjson` should be preceded by a successful `OPTIONS` (preflight).
+1. With `"debug": true`, open any modern page, then the browser console (F12). You should see `[Eulerian] tracking started` and one `[Eulerian] POST https://<collectorHost>/collectorjson/<siteName>/...` line per page view, followed by `collector answered HTTP 200`.
+2. In the **Network** tab, the request to `collectorjson` should be preceded by a successful `OPTIONS` (preflight). The console must show no `Refused to connect` CSP error (see [SharePoint CSP and the collector](#sharepoint-csp-and-the-collector)).
 3. Check that the hits appear in the Eulerian interface.
 4. Set `"debug": false` once everything works.
 
@@ -85,6 +92,7 @@ All values come from the extension's **Component Properties** (JSON). An invalid
 | Property | Type | Default | Description |
 |---|---|---|---|
 | `collectorHost` | string | — **(required)** | Your Eulerian collector host name: no `https://`, no slash, no port, not `*.eulerian.com`. |
+| `siteName` | string | — **(required)** | Your Eulerian site name, provided by Eulerian. Used in the endpoint path: `/collectorjson/<siteName>/<epoch>`. Letters, digits, `_`, `-`, `.`; starts with a letter or digit; max 64 characters. |
 | `consentMode` | `"pmcat"` \| `"consented"` \| `"nonconsented"` | — **(required)** | Consent signal added to every hit, see below. Required so the legal basis is always an explicit admin choice. |
 | `pmcat` | string | — | Only in `pmcat` mode (required there): Eulerian IDs of **refused** categories separated by `-` (e.g. `"2-5"`), or `"-"` alone when every category is accepted. |
 | `setUid` | boolean | `false` | Adds `uid` = the user's **Microsoft Entra ID object ID, in clear**. |
@@ -104,13 +112,13 @@ v1 doesn't integrate with any consent banner: the admin picks **one** mode for t
 |---|---|---|
 | `pmcat` | `"pmcat": "<your value>"` | Eulerian consent categories: the listed category IDs are refused; `-` = all accepted. |
 | `consented` | `"enoepm": "1"` | Consent management disabled: everything is collected. |
-| `nonconsented` | `"enoepm": "0"` | Intended as "no consent". **The exact effect is still to be confirmed by Eulerian** (see [Open questions](#open-questions)). |
+| `nonconsented` | `"enoepm": "0"` | No consent. |
 
 ---
 
 ## What is tracked
 
-Every hit is **one** `POST` to `https://<collectorHost>/collectorjson/-/<unix-seconds>` whose body is a one-element JSON array. Each hit always contains:
+Every hit is **one** `POST` to `https://<collectorHost>/collectorjson/<siteName>/<unix-seconds>` whose body is a one-element JSON array. Each hit always contains:
 
 - `euidl` (visitor ID),
 - `url` (full page URL),
@@ -160,15 +168,47 @@ All hits go only to the collector host you configure.
 
 ---
 
+## SharePoint CSP and the collector
+
+Since 2026, SharePoint Online enforces a Content Security Policy on modern pages. This extension is designed to need **no CSP change for its code**:
+
+- the bundle is packaged inside the `.sppkg` (`includeClientSideAssets`) and served by SharePoint itself, not from an external CDN;
+- it loads no external script and uses no inline script and no `eval`.
+
+The one open point is the **network request to the collector** (`fetch` to `https://<collectorHost>`), which a CSP governs through `connect-src`, not `script-src`. Microsoft's public guidance so far covers script sources (the **Trusted script sources** list). We have not confirmed whether SharePoint also restricts `connect-src` in your tenant. Check it once, then follow the matching case.
+
+**How to check:** open a modern page with `"debug": true` and the browser console open (F12):
+
+- `[Eulerian] collector answered HTTP 200` and **no** `Refused to connect … "connect-src"` message → **case A**;
+- `Refused to connect to 'https://<collectorHost>/…' because it violates … "connect-src"` → **case B**.
+
+You can also look for the response header `Content-Security-Policy` (or `…-Report-Only`) on the page in the **Network** tab and check whether it contains a `connect-src` directive that doesn't allow your collector host. Microsoft Purview audit also lists blocked resources (activity "Violated Content Security Policy").
+
+### Case A: the tenant CSP doesn't restrict `connect-src`
+
+Nothing to do. Hits go straight to the collector.
+
+### Case B: the tenant CSP restricts `connect-src`
+
+The browser blocks every hit before it leaves the page. The page itself keeps working, because the extension catches the error. To unblock it:
+
+1. In the **SharePoint admin center**, open **Advanced → Script sources** (Trusted script sources) and add your collector origin exactly: `https://<collectorHost>`. Avoid wildcards, which SharePoint refuses when they are too broad.
+2. Wait for propagation (it can take a while), hard-refresh, and check the console again.
+3. If the error persists, the tenant's `connect-src` is not driven by that list. Contact Microsoft support with the exact console message, and tell Eulerian. Until it's solved, tracking can't work on that tenant. As a stopgap, set `"collectorHost": ""` (or disable the Tenant Wide Extensions entry) to stop the useless requests.
+
+If your tenant delays CSP enforcement (`Set-SPOTenant -DelayContentSecurityPolicyEnforcement $true`), violations are only reported, not blocked. Re-check after the delay ends.
+
+---
+
 ## Troubleshooting
 
 | Symptom (browser console) | Cause / fix |
 |---|---|
-| `[Eulerian] tracking disabled: "collectorHost" is missing or invalid…` | Fix the JSON in Tenant Wide Extensions. The message names the faulty field. |
+| `[Eulerian] tracking disabled: "collectorHost" is missing or invalid…` (or `"siteName"`, `"consentMode"`, `"pmcat"`) | Fix the JSON in Tenant Wide Extensions. The message names the faulty field. |
 | `Access to fetch … has been blocked by CORS policy` | The collector doesn't answer the preflight for your SharePoint origin. Ask Eulerian (installation step 1). |
-| `Refused to connect to … because it violates the … Content Security Policy directive "connect-src"` | Your tenant's CSP blocks requests to the collector host. This would block the extension entirely. Report it (see [Open questions](#open-questions)). |
+| `Refused to connect to … because it violates the … Content Security Policy directive "connect-src"` | Your tenant's CSP blocks requests to the collector host. See [case B](#case-b-the-tenant-csp-restricts-connect-src). |
 | No `[Eulerian]` line at all with `debug: true` | Is the extension enabled in Tenant Wide Extensions and deployed to all sites? Is it a **modern** page? Is the configuration cached? Wait a few minutes or hard-refresh. |
-| Requests visible but nothing in Eulerian | The SharePoint host is not declared on the Eulerian site (installation step 1). |
+| Requests visible but nothing in Eulerian | Wrong `siteName`, or the SharePoint host is not declared on that Eulerian site (installation step 1). |
 | Requests blocked by the browser itself | Some ad/privacy blockers block analytics endpoints. This is outside the extension's control. |
 
 ---
@@ -248,10 +288,10 @@ Page options: `?config=<base64 JSON>` overrides Component Properties, and `?user
 **Testing against the real Eulerian collector** (HANDOFF §11 step 3):
 
 ```bash
-HARNESS_REAL_COLLECTOR=<your-collector-host> npm run harness
+HARNESS_REAL_COLLECTOR=<your-collector-host> HARNESS_SITE_NAME=<your-site> npm run harness
 ```
 
-The page then posts to `https://<your-collector-host>/collectorjson/-/…`. In the browser devtools, check that the `OPTIONS` preflight succeeds. Note that `url` is then `http://127.0.0.1:8401/…`, which Eulerian will reject unless that domain is declared. The preflight result is what matters for open question 2. **Never commit a real collector host.**
+The page then posts to `https://<your-collector-host>/collectorjson/<your-site>/…`. In the browser devtools, check that the `OPTIONS` preflight succeeds. Note that `url` is then `http://127.0.0.1:8401/…`, which Eulerian will reject unless that domain is declared. **Never commit a real collector host or site name.**
 
 ### Debugging on a real SharePoint page
 
@@ -262,7 +302,7 @@ export SPFX_SERVE_TENANT_DOMAIN=<tenant>.sharepoint.com
 npm start
 ```
 
-`config/serve.json` opens `https://<tenant>/SitePages/Home.aspx` with the debug query parameters and placeholder properties (edit `collectorHost` locally, don't commit it). Accept **Load debug scripts** in the browser.
+`config/serve.json` opens `https://<tenant>/SitePages/Home.aspx` with the debug query parameters and placeholder properties (edit `collectorHost` and `siteName` locally, don't commit them). Accept **Load debug scripts** in the browser.
 
 ### Releasing
 
@@ -282,11 +322,11 @@ npm start
 
 Tracked in [HANDOFF.md](HANDOFF.md) §4 and [docs/eulerian-protocol.md](docs/eulerian-protocol.md) §7:
 
-1. **`enoepm=0`** ("nonconsented" mode): the semantics need confirming with Eulerian.
-2. **CORS preflight on `collectorjson`**: not yet verified against a real collector. This is the biggest risk.
-3. **Site resolution** for `/collectorjson/-/` and whether **`rf`** is read in the JSON format.
-4. **Search payload shape**: flat (RN SDK, implemented) vs nested (iOS/Android/Flutter SDKs).
-5. **SharePoint CSP `connect-src`**: not yet verified on a real tenant.
+1. Whether **`rf`** is read as a flat key in the JSON format.
+2. **Search payload shape**: flat (RN SDK, implemented) vs nested (iOS/Android/Flutter SDKs).
+3. **SharePoint CSP `connect-src`**: unknown per tenant. Both cases are documented in [SharePoint CSP and the collector](#sharepoint-csp-and-the-collector).
+
+Resolved: `enoepm=0` is the non-consented signal; the collector answers CORS preflights; the Eulerian site is given explicitly by the mandatory `siteName` setting (`/collectorjson/<siteName>/<epoch>`).
 
 ## License
 

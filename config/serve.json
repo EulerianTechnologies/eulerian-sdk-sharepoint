@@ -10,6 +10,7 @@
           "location": "ClientSideExtension.ApplicationCustomizer",
           "properties": {
             "collectorHost": "collector.example.com",
+            "siteName": "my-site",
             "consentMode": "pmcat",
             "pmcat": "-",
             "setUid": false,
