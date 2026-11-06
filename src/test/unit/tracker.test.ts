@@ -165,9 +165,7 @@ describe('startTracking', () => {
     const [hit] = hits(rec);
     expect(hit).toMatchObject({
       path: '/sharepoint|root|search',
-      isearchengine: 'sharepoint_search',
-      isearchparams: { keyword: 'annual leave' },
-      isearchresults: 7
+      isearchengine: { name: 'sharepoint_search', results: 7, params: { keyword: 'annual leave' } }
     });
     expect(hit).not.toHaveProperty('ereplay-notag');
   });

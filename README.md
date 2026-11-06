@@ -130,7 +130,7 @@ Every hit is **one** `POST` to `https://<collectorHost>/collectorjson/<siteName>
 | Event | When | Specific fields |
 |---|---|---|
 | **Page view** | First load and every in-app navigation (SharePoint is a single-page app). Duplicate navigation events for the same URL are ignored. | `path` = `/<pathPrefix>\|<site>\|<page>` (e.g. `/sharepoint\|sites/hr\|Home`; the root site is `root`), `pagegroup` = site title. `rf` = `document.referrer` on the first view, then the previous page. |
-| **Internal search** | A search page (`/_layouts/15/search.aspx…` or any `…/Search.aspx`) with a non-empty `q` parameter. Replaces the plain page view for that URL. | `isearchengine` = `sharepoint_search`, `isearchparams` = `{ "keyword": "<query>" }`. |
+| **Internal search** | A search page (`/_layouts/15/search.aspx…` or any `…/Search.aspx`) with a non-empty `q` parameter. Replaces the plain page view for that URL. | `isearchengine` = `{ "name": "sharepoint_search", "params": { "keyword": "<query>" } }`. |
 | **Document download/open** | Click (left, middle, Ctrl/Shift, keyboard) on a link to `pdf`, Word, Excel, PowerPoint, OpenDocument, Visio, `csv`, `txt`, `rtf`, `zip`… files. | Event only (`ereplay-notag: 1`, not a page view), `actions` = `[{ "name": "download", "label": "<file name>", "params": { "ext": "<ext>" } }]`. |
 
 The exact payloads are in [docs/eulerian-protocol.md](docs/eulerian-protocol.md).
@@ -152,7 +152,7 @@ Download detection relies on a link (`<a href>`) that names the file. It works f
 - the **Download** button of the command bar and the file viewer's own buttons,
 - files opened outside SharePoint pages (Teams, OneDrive app, Office desktop).
 
-The number of search results (`isearchresults`) is not sent. Microsoft Search renders it asynchronously, with no stable element to read it from.
+The number of search results (`results` in `isearchengine`) is not sent. Microsoft Search renders it asynchronously, with no stable element to read it from.
 
 ---
 
@@ -326,7 +326,7 @@ These were settled at the start of the project. Don't revisit them without discu
 - **Plain TypeScript, no UI framework** (no React/Vue). The harness backend is Perl (Mojolicious::Lite).
 - **SharePoint Online modern pages only.** Classic pages and SharePoint Server are out of scope.
 - **Transport = the official SDKs' JSON protocol** (`collectorjson`), one hit per POST, fire-and-forget (no queue, no retry), `fetch` with `keepalive` (not `sendBeacon`, which restricts `application/json` bodies). No Eulerian JS loader, no `EA_push`, no form-encoded `/collector/`.
-- **Payload = the SDKs' keys and nesting.** When the SDKs disagree, follow `eanalytics-react-native`. See [docs/eulerian-protocol.md](docs/eulerian-protocol.md).
+- **Payload = the SDKs' keys and nesting.** The code mirrors `eanalytics-react-native`'s builders; where the SDKs disagree, follow the iOS/Android/Flutter SDKs (the most recent ones). For example, search uses their nested `isearchengine` object. See [docs/eulerian-protocol.md](docs/eulerian-protocol.md).
 - **Configuration only at install time** (Component Properties). The same `.sppkg` serves every customer.
 - **User identifiers are extra fields on the same hit**, never separate calls, and both are off by default. They are applied centrally by `finalizeHit()` (`lib/tracker.ts`) so no tag type can forget them. `uid` and `email` are independent: one never replaces the other.
 - **`euidl`** is a random UUID in `localStorage["eulerian-euidl"]`, like the iOS SDK. Each browser/device is a separate visitor unless `uid` links them.
@@ -342,10 +342,7 @@ These were settled at the start of the project. Don't revisit them without discu
 
 ## Open questions
 
-Also listed in [docs/eulerian-protocol.md](docs/eulerian-protocol.md) §7:
-
-1. **Search payload shape**: flat (RN SDK, implemented) vs nested (iOS/Android/Flutter SDKs).
-2. **SharePoint CSP `connect-src`**: unknown per tenant. Both cases are documented in [SharePoint CSP and the collector](#sharepoint-csp-and-the-collector).
+- **SharePoint CSP `connect-src`**: unknown per tenant. Both cases are documented in [SharePoint CSP and the collector](#sharepoint-csp-and-the-collector).
 
 ## License
 

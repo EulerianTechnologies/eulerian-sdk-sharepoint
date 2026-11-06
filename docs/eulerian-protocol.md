@@ -6,7 +6,7 @@ Sources read (default branches, shallow clones):
 
 | SDK | Files |
 |---|---|
-| `eanalytics-react-native` (TypeScript, **reference**) | `src/eAnalytics.ts`, `src/utils/httpHelper.ts`, `src/utils/helper.ts`, `src/utils/propertiesTracker.ts`, `src/models/eaGeneric.ts`, `src/models/eaSearch.ts`, `src/models/classes/action.ts`, `src/models/classes/params.ts` |
+| `eanalytics-react-native` (TypeScript, closest to our code) | `src/eAnalytics.ts`, `src/utils/httpHelper.ts`, `src/utils/helper.ts`, `src/utils/propertiesTracker.ts`, `src/models/eaGeneric.ts`, `src/models/eaSearch.ts`, `src/models/classes/action.ts`, `src/models/classes/params.ts` |
 | `eanalytics-flutter` (Dart, also targets Web) | `lib/src/utils/post.dart`, `lib/src/models/EAProperty.dart`, `lib/src/models/EAGlobalParams.dart`, `lib/src/models/keys/EAPropertyKey.dart`, `lib/src/models/classes/Search.dart` |
 | `eanalytics-android` (Java) | `EAnalytics.java`, `EAProperties.java`, `EASearch.java` |
 | `eanalytics-ios` (Objective-C) | `EAnalytics.m`, `EAProperties.m`, `EASearch.m` |
@@ -54,7 +54,7 @@ RN builds three dictionaries and merges them flat, in this order (later keys win
 | `actions` | pages | `[{ name, label, mode?, ref?, params? }]` | `putAction()` |
 | `ereplay-notag` | properties | `1` (number) | `setStandalone()` |
 | `pmcat` / `enoepm` | properties | see section 3 | Passed as free keys (`set(key, value)`). |
-| `isearchengine` / `isearchresults` / `isearchparams` | properties | see section 4 | |
+| `isearchengine` | properties | `{ name, results?, params }`, see section 4 | Nested form of iOS/Android/Flutter (RN sends flat keys). |
 
 Keys the app SDKs send that we deliberately leave out, because they have no meaning in a browser: `eos`, `ehw`, `ehw-identifier`, `ea-appname`, `ea-appversion`, `ea-appversionbuild`, the `ea-android-*` and `ea-ios-*` keys, and the SDK version keys. If Eulerian wants an integration marker, the natural choice is `ea-sharepoint-sdk-version`. It is not sent today.
 
@@ -82,9 +82,9 @@ The SDKs do **not** agree on the shape of the search fields:
 { "isearchengine": { "name": "sharepoint_search", "results": 12, "params": { "keyword": "holidays" } } }
 ```
 
-The project's tie-break rule ("when the SDKs disagree, do what `eanalytics-react-native` does") selects the **flat** form, and that is what we send. Three of the four SDKs (including both original native ones) use the nested form, so **ask Eulerian which form `collectorjson` reads**. Only `lib/tags/ea-search.ts` would need to change.
+**We send the nested form** (decision of 2026-11-06), like iOS, Android and Flutter, the most recent SDKs. See `lib/tags/ea-search.ts`.
 
-`isearchresults` is omitted in SharePoint: Microsoft Search renders its result count asynchronously, without a stable selector.
+`results` is omitted in SharePoint: Microsoft Search renders its result count asynchronously, without a stable selector. The engine object is then `{ "name": "sharepoint_search", "params": { "keyword": "..." } }`.
 
 ## 5. Actions (downloads)
 
@@ -126,8 +126,7 @@ Search, `consentMode: "consented"`:
   "path": "/sharepoint|root|search",
   "pagegroup": "Contoso Intranet",
   "rf": "https://contoso.example.com/sites/hr/SitePages/News.aspx",
-  "isearchengine": "sharepoint_search",
-  "isearchparams": { "keyword": "annual leave" },
+  "isearchengine": { "name": "sharepoint_search", "params": { "keyword": "annual leave" } },
   "enoepm": "1"
 }]
 ```
@@ -150,6 +149,4 @@ Download:
 
 ## 7. Questions for Eulerian (summary)
 
-1. Search: flat (`isearchengine` + `isearchresults` + `isearchparams`, as in RN) or nested (`isearchengine: { name, results, params }`, as in iOS/Android/Flutter)?
-2. Does the leading `/` the SDKs add to `path` matter for reporting (`/sharepoint|sites/hr|Home`)?
-3. Should we send an integration/version marker (for example `ea-sharepoint-sdk-version`)?
+1. Should we send an integration/version marker (for example `ea-sharepoint-sdk-version`)?

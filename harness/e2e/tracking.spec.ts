@@ -127,11 +127,10 @@ test('internal search: EASearch hit', async ({ page, request }) => {
   const all = await waitForHits(request, 2);
   expect(all[1]).toMatchObject({
     path: '/sharepoint|root|search',
-    isearchengine: 'sharepoint_search',
-    isearchparams: { keyword: 'annual leave' },
+    isearchengine: { name: 'sharepoint_search', params: { keyword: 'annual leave' } },
     rf: PAGE_ORIGIN + HOME
   });
-  expect(all[1]).not.toHaveProperty('isearchresults');
+  expect(all[1].isearchengine).not.toHaveProperty('results');
 });
 
 test('download that navigates the tab away still arrives (keepalive)', async ({ page, request }) => {

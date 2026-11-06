@@ -81,7 +81,7 @@ describe('EaGenericBuilder', () => {
 });
 
 describe('EASearchBuilder', () => {
-  it('flat isearch* keys, as in eanalytics-react-native', () => {
+  it('nested isearchengine object, as in the iOS/Android/Flutter SDKs', () => {
     const hit = new EASearchBuilder(internals, 'sharepoint|root|search')
       .setName('sharepoint_search')
       .setResults(12)
@@ -96,10 +96,18 @@ describe('EASearchBuilder', () => {
       path: '/sharepoint|root|search',
       uid: 'a1b2',
       email: 'abc',
-      isearchengine: 'sharepoint_search',
-      isearchresults: 12,
-      isearchparams: { keyword: 'holidays' }
+      isearchengine: { name: 'sharepoint_search', results: 12, params: { keyword: 'holidays' } }
     });
+    expect(hit).not.toHaveProperty('isearchresults');
+    expect(hit).not.toHaveProperty('isearchparams');
+  });
+
+  it('omits results/params when not set, and snapshots the engine at build()', () => {
+    const builder = new EASearchBuilder(internals, 'p').setName('sharepoint_search');
+    const first = builder.build();
+    builder.setResults(3);
+    expect(first.isearchengine).toEqual({ name: 'sharepoint_search' });
+    expect(builder.build().isearchengine).toEqual({ name: 'sharepoint_search', results: 3 });
   });
 });
 

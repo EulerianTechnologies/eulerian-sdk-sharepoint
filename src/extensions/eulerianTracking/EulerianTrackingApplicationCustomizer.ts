@@ -69,7 +69,7 @@ export default class EulerianTrackingApplicationCustomizer extends BaseApplicati
       getEmail: () => this.context.pageContext.user.email,
       getInitialReferrer: () => document.referrer,
       // Microsoft Search renders its result count asynchronously and without a
-      // stable selector: not reliably readable, so isearchresults is omitted.
+      // stable selector: not reliably readable, so the search engine's `results` is omitted.
       getSearchResultCount: () => undefined,
       onNavigate: (callback: () => void) => {
         // Fires on every in-app (SPA) navigation, sometimes several times;
