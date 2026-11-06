@@ -1,4 +1,4 @@
-# Eulerian tracking for SharePoint Online
+# Eulerian Marketing Platform tracking for SharePoint Online
 
 A SharePoint Framework (SPFx) Application Customizer that adds [Eulerian Marketing Platform](https://www.eulerian.com) tracking to every **modern page** of a SharePoint Online tenant.
 
