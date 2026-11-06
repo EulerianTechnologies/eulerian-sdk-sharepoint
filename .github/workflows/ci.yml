@@ -1,0 +1,55 @@
+# Runs on every push and pull request: lint + unit tests, harness e2e tests
+# (Chromium + Firefox), and a ship-mode .sppkg build kept as a CI artifact.
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # Harness backend: Perl + Mojolicious (Ubuntu package, no CPAN build).
+      - name: Install Mojolicious
+        run: sudo apt-get update && sudo apt-get install -y libmojolicious-perl
+
+      - run: npm ci
+
+      - name: Version consistency
+        run: npm run version:check
+
+      - name: Lint + unit tests
+        run: npm test
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox
+
+      - name: Harness e2e tests
+        run: npm run e2e
+
+      - name: Build .sppkg (ship mode)
+        run: npm run package
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eulerian-sharepoint-sppkg
+          path: sharepoint/solution/eulerian-sharepoint.sppkg
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: temp/playwright-*

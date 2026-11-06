@@ -1,0 +1,26 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/spfx-serve.schema.json",
+  "port": 4321,
+  "https": true,
+  "serveConfigurations": {
+    "default": {
+      "pageUrl": "https://{tenantDomain}/SitePages/Home.aspx",
+      "customActions": {
+        "6abb42ac-0a7b-4d82-820e-d3c02cef3409": {
+          "location": "ClientSideExtension.ApplicationCustomizer",
+          "properties": {
+            "collectorHost": "collector.example.com",
+            "consentMode": "pmcat",
+            "pmcat": "-",
+            "setUid": false,
+            "setEmailHash": false,
+            "trackDownloads": true,
+            "trackSearch": true,
+            "pathPrefix": "sharepoint",
+            "debug": true
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
+  "solution": {
+    "name": "eulerian-sharepoint",
+    "id": "90d6d514-2e22-4370-8fb4-817ae329842f",
+    "version": "0.1.0.0",
+    "includeClientSideAssets": true,
+    "skipFeatureDeployment": true,
+    "developer": {
+      "name": "Eulerian Technologies",
+      "websiteUrl": "https://www.eulerian.com",
+      "privacyUrl": "https://github.com/EulerianTechnologies/eulerian-sdk-sharepoint#data-collected-information-for-your-dpo",
+      "termsOfUseUrl": "",
+      "mpnId": "Undefined-1.24.1"
+    },
+    "metadata": {
+      "shortDescription": {
+        "default": "Eulerian Marketing Platform tracking for SharePoint Online"
+      },
+      "longDescription": {
+        "default": "Adds Eulerian Marketing Platform tracking (page views, internal search, document downloads) to every modern SharePoint Online page. Configured by the tenant admin through the Tenant Wide Extensions list; no code change on the customer side."
+      },
+      "screenshotPaths": [],
+      "videoUrl": "",
+      "categories": []
+    },
+    "features": [
+      {
+        "title": "Eulerian tracking Application Customizer",
+        "description": "Registers the Eulerian tracking Application Customizer",
+        "id": "aa9c55ba-6423-4904-8ea8-fb4a2d37e2c6",
+        "version": "0.1.0.0",
+        "assets": {
+          "elementManifests": [
+            "elements.xml",
+            "ClientSideInstance.xml"
+          ]
+        }
+      }
+    ]
+  },
+  "paths": {
+    "zippedPackage": "solution/eulerian-sharepoint.sppkg"
+  }
+}

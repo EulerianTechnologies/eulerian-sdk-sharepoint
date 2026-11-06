@@ -1,0 +1,46 @@
+# On a version tag (v*): verify the tag matches the .sppkg version, run every
+# test, build the .sppkg in ship mode and attach it to a GitHub Release.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install Mojolicious
+        run: sudo apt-get update && sudo apt-get install -y libmojolicious-perl
+
+      - run: npm ci
+
+      - name: Tag must match package.json and package-solution.json
+        run: npm run version:check -- "$GITHUB_REF_NAME"
+
+      - run: npm test
+
+      - run: npx playwright install --with-deps chromium firefox
+
+      - run: npm run e2e
+
+      - run: npm run package
+
+      - name: Create GitHub Release with the .sppkg
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "$GITHUB_REF_NAME"
+          sharepoint/solution/eulerian-sharepoint.sppkg
+          --title "$GITHUB_REF_NAME"
+          --generate-notes

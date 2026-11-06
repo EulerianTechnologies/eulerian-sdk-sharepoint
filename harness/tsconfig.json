@@ -1,0 +1,18 @@
+{
+  // Compiles the shared lib/ + the harness entry to plain ES modules served by
+  // harness.pl (which resolves the extension-less imports to .js files).
+  "compilerOptions": {
+    "target": "es2019",
+    "module": "es2020",
+    "moduleResolution": "node",
+    "lib": ["dom", "es2019"],
+    "strict": true,
+    "noImplicitAny": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "types": [],
+    "rootDir": "..",
+    "outDir": "public/build"
+  },
+  "include": ["src/**/*.ts", "../src/extensions/eulerianTracking/lib/**/*.ts"]
+}

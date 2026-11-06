@@ -1,0 +1,23 @@
+{
+  "@microsoft/generator-sharepoint": {
+    "whichFolder": "subdir",
+    "solutionName": "eulerian-sharepoint",
+    "environment": "spo",
+    "packageManager": "npm",
+    "skipFeatureDeployment": true,
+    "useGulp": false,
+    "componentType": "extension",
+    "extensionType": "ApplicationCustomizer",
+    "template": "none",
+    "componentName": "EulerianTracking",
+    "componentDescription": "Eulerian Marketing Platform tracking for SharePoint Online modern pages",
+    "plusBeta": false,
+    "isCreatingSolution": true,
+    "nodeVersion": "26.13.0",
+    "sdksVersions": {},
+    "version": "1.24.1",
+    "libraryName": "eulerian-sharepoint",
+    "libraryId": "90d6d514-2e22-4370-8fb4-817ae329842f",
+    "solutionShortDescription": "eulerian-sharepoint description"
+  }
+}

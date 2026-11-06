@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Site-level registration, used only when the app is added to an individual
+  site instead of deployed tenant-wide. Same defaults as ClientSideInstance.xml.
+-->
+<Elements xmlns="http://schemas.microsoft.com/sharepoint/">
+    <CustomAction
+        Title="EulerianTracking"
+        Location="ClientSideExtension.ApplicationCustomizer"
+        ClientSideComponentId="6abb42ac-0a7b-4d82-820e-d3c02cef3409"
+        ClientSideComponentProperties="{&quot;collectorHost&quot;:&quot;&quot;,&quot;consentMode&quot;:&quot;&quot;,&quot;pmcat&quot;:&quot;-&quot;,&quot;setUid&quot;:false,&quot;setEmailHash&quot;:false,&quot;trackDownloads&quot;:true,&quot;trackSearch&quot;:true,&quot;pathPrefix&quot;:&quot;sharepoint&quot;,&quot;debug&quot;:false}">
+    </CustomAction>
+</Elements>
