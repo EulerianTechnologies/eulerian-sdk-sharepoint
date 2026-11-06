@@ -285,7 +285,7 @@ sharepoint/assets/          ClientSideInstance.xml (tenant-wide registration), e
 
 Page options: `?config=<base64 JSON>` overrides Component Properties, and `?userId=` / `?userEmail=` set the fake user.
 
-**Testing against the real Eulerian collector** (HANDOFF §11 step 3):
+**Testing against the real Eulerian collector:**
 
 ```bash
 HARNESS_REAL_COLLECTOR=<your-collector-host> HARNESS_SITE_NAME=<your-site> npm run harness
@@ -310,6 +310,20 @@ npm start
 2. Commit, then tag `vX.Y.Z` and push the tag.
 3. `release.yml` checks the versions, runs all tests, builds the `.sppkg` in ship mode and attaches it to a GitHub Release.
 
+### Design decisions
+
+These were settled at the start of the project. Don't revisit them without discussing first.
+
+- **One SPFx solution, one bundle, one `.sppkg`.** Folders under `lib/` exist for readability and tests, not as separate packages.
+- **Plain TypeScript, no UI framework** (no React/Vue). The harness backend is Perl (Mojolicious::Lite).
+- **SharePoint Online modern pages only.** Classic pages and SharePoint Server are out of scope.
+- **Transport = the official SDKs' JSON protocol** (`collectorjson`), one hit per POST, fire-and-forget (no queue, no retry), `fetch` with `keepalive` (not `sendBeacon`, which restricts `application/json` bodies). No Eulerian JS loader, no `EA_push`, no form-encoded `/collector/`.
+- **Payload = the SDKs' keys and nesting.** When the SDKs disagree, follow `eanalytics-react-native`. See [docs/eulerian-protocol.md](docs/eulerian-protocol.md).
+- **Configuration only at install time** (Component Properties). The same `.sppkg` serves every customer.
+- **User identifiers are extra fields on the same hit**, never separate calls, and both are off by default. They are applied centrally by `finalizeHit()` (`lib/tracker.ts`) so no tag type can forget them. `uid` and `email` are independent: one never replaces the other.
+- **`euidl`** is a random UUID in `localStorage["eulerian-euidl"]`, like the iOS SDK. Each browser/device is a separate visitor unless `uid` links them.
+- **Consent: three admin-chosen modes only**, with no CMP integration and no consent UI.
+
 ### Rules for contributors
 
 - No customer-specific values (collector hosts, tenant URLs) anywhere in the repo, including tests. Use placeholders such as `collector.example.com` and `contoso.example.com`.
@@ -320,7 +334,7 @@ npm start
 
 ## Open questions
 
-Tracked in [HANDOFF.md](HANDOFF.md) §4 and [docs/eulerian-protocol.md](docs/eulerian-protocol.md) §7:
+Also listed in [docs/eulerian-protocol.md](docs/eulerian-protocol.md) §7:
 
 1. Whether **`rf`** is read as a flat key in the JSON format.
 2. **Search payload shape**: flat (RN SDK, implemented) vs nested (iOS/Android/Flutter SDKs).

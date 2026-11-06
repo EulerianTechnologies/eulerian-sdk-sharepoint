@@ -13,7 +13,7 @@ describe('consentFields', () => {
     expect(consentFields({ consentMode: 'consented', pmcat: '' })).toEqual({ enoepm: '1' });
   });
 
-  it('nonconsented mode sends enoepm=0 (open question 1)', () => {
+  it('nonconsented mode sends enoepm=0', () => {
     expect(consentFields({ consentMode: 'nonconsented', pmcat: '' })).toEqual({ enoepm: '0' });
   });
 

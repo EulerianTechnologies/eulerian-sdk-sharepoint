@@ -14,7 +14,7 @@
 #     - POST    /hits/reset
 #     - POST    /control                   { "cors": 0|1 }  toggle CORS headers
 #
-# Real collector mode (manual test, HANDOFF section 11 step 3):
+# Real collector mode (manual test against the real Eulerian collector):
 #   HARNESS_REAL_COLLECTOR=collector.customer-host.tld HARNESS_SITE_NAME=<site> perl harness/harness.pl
 # makes the page POST to https://<that host>/collectorjson/<site>/... instead of
 # the fake collector.

@@ -8,7 +8,7 @@ import { Params } from './params';
  *
  * NOTE: the iOS, Android and Flutter SDKs nest these instead:
  *   "isearchengine": { "name": ..., "results": ..., "params": {...} }
- * The HANDOFF tie-break rule ("when in doubt, do what RN does") selects the
+ * The project rule ("when SDKs disagree, do what RN does") selects the
  * flat form. If Eulerian says the collector only reads the nested form,
  * switching is local to this file. See docs/eulerian-protocol.md.
  */

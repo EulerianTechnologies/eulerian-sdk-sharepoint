@@ -44,13 +44,13 @@ RN builds three dictionaries and merges them flat, in this order (later keys win
 | Key | RN dictionary | Our value | Notes |
 |---|---|---|---|
 | `euidl` | internals | random UUID v4, `localStorage["eulerian-euidl"]` | iOS: random UUID persisted in NSUserDefaults under `eulerian-euidl`. Android / RN-Android: `ANDROID_ID`. |
-| `url` | internals | full `location.href` | RN/Android/iOS: `"http://" + bundleId`. **Flutter Web: `Uri.base.path` (path only).** We follow the HANDOFF (full URL), because the domain must match the domain declared on the Eulerian site. |
+| `url` | internals | full `location.href` | RN/Android/iOS: `"http://" + bundleId`. **Flutter Web: `Uri.base.path` (path only).** We send the full URL, because the domain must match the domain declared on the Eulerian site. |
 | `ereplay-time` | internals | Unix seconds (number) | Same in all SDKs. |
 | `path` | pages | `"/" + pathPrefix\|<site segment>\|<page name>` | **All four SDKs prepend `/` when it's missing**, and our builder does the same. Example: `/sharepoint\|sites/hr\|Home`. |
 | `pagegroup` | pages | site (web) title | `setPageGroup()` |
 | `uid` | pages | Entra object ID, lowercase GUID | `setUID()`; only with `setUid: true`. |
 | `email` | pages | SHA-256 hex of the trimmed, lowercased email | `setEmail()`; the SDKs send whatever the app passes, and their docs ask for SHA-256 of the lowercased email. Only with `setEmailHash: true`. |
-| `rf` | pages | first view: `document.referrer`; after that: previous in-app URL | **Not sent by any app SDK** (open question 3). |
+| `rf` | pages | first view: `document.referrer`; after that: previous in-app URL | **Not sent by any app SDK**; whether `collectorjson` reads it is still open (§7). |
 | `actions` | pages | `[{ name, label, mode?, ref?, params? }]` | `putAction()` |
 | `ereplay-notag` | properties | `1` (number) | `setStandalone()` |
 | `pmcat` / `enoepm` | properties | see section 3 | Passed as free keys (`set(key, value)`). |
@@ -66,7 +66,7 @@ The generic server-side guide defines `pmcat` (IDs of refused categories, `-` se
 |---|---|
 | `pmcat` | `"pmcat": "<config>"` |
 | `consented` | `"enoepm": "1"` |
-| `nonconsented` | `"enoepm": "0"`: no consent (confirmed 2026-11-06) |
+| `nonconsented` | `"enoepm": "0"`: no consent |
 
 ## 4. Internal search — SDK divergence
 
@@ -82,7 +82,7 @@ The SDKs do **not** agree on the shape of the search fields:
 { "isearchengine": { "name": "sharepoint_search", "results": 12, "params": { "keyword": "holidays" } } }
 ```
 
-The HANDOFF tie-break rule ("when in doubt, do what `eanalytics-react-native` does") selects the **flat** form, and that is what we send. Three of the four SDKs (including both original native ones) use the nested form, so **ask Eulerian which form `collectorjson` reads**. Only `lib/tags/ea-search.ts` would need to change.
+The project's tie-break rule ("when the SDKs disagree, do what `eanalytics-react-native` does") selects the **flat** form, and that is what we send. Three of the four SDKs (including both original native ones) use the nested form, so **ask Eulerian which form `collectorjson` reads**. Only `lib/tags/ea-search.ts` would need to change.
 
 `isearchresults` is omitted in SharePoint: Microsoft Search renders its result count asynchronously, without a stable selector.
 
